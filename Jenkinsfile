@@ -42,6 +42,7 @@ pipeline {
                     ls -l
                     cat cert1.crt
                     cat cert2.crt
+                    cat secret
                     """
                 }
             }
