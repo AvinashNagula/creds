@@ -41,7 +41,7 @@ pipeline {
                     sh """
                     ls -l
                     cat cert1.pem
-                    cat cert2.pem
+                    cat cert2.crt
                     """
                 }
             }
