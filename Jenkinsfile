@@ -1,67 +1,50 @@
 pipeline {
     agent any
 
-    options {
-        skipDefaultCheckout true
-    }
-
-    triggers {
-        pollSCM 'H/5 * * * *' // Poll SCM every 5 minutes
-    }
-
     stages {
+        stage('Clean Workspace') {
+            steps {
+                deleteDir()
+            }
+        }
         stage('Checkout') {
             
             steps {
                 // Checkout code from a Git repository
-                git url: 'https://github.com/AvinashNagula/testskipci.git', branch: 'main'
-                    scmSkipCI(deleteBuild: true, skipPattern: '.*ci skip.*')
+                git url: 'https://github.com/AvinashNagula/creds.git', branch: 'main'
 
             }
         }
-        stage('Build') {
-             when {
-                not {
-                    equals expected: 'NOT_BUILT', actual: currentBuild.result
+        stage('Load Credentials') {
+            steps {
+                script {
+                    // Load the credentials from the groovy file
+                    def creds = load 'credentials.groovy'
+                    
+                    // Iterate over the credentials and set environment variables dynamically
+                    creds.CERTS.each { cert ->
+                        env[cert.NAME] = credentials(cert.ID)
+                    }
                 }
             }
-            steps {
-                // Add your build steps here
-                echo 'Building....'
-            }
         }
-        stage('Test') {
-            when {
-                not {
-                    equals expected: 'NOT_BUILT', actual: currentBuild.result
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Write the credentials to temporary files
+                    def creds = load 'credentials.groovy'  // Reload if needed
+                    creds.CERTS.each { cert ->
+                        writeFile file: cert.FILE, text: "${env[cert.NAME]}"
+                    }
+
+                    // Build Docker image
+                    sh """
+                    ls -l
+                    cat cert1.crt
+                    cat cert2.crt
+                    """
                 }
             }
-            steps {
-                // Add your test steps here
-                echo 'Testing...'
-            }
         }
-        
     }
-}
-def scmSkipCI(Map params = [:]) {
-    def deleteBuild = params.get('deleteBuild', false)
-    def skipPattern = params.get('skipPattern', '.*\\[ci skip\\].*')
-
-    def commitMessage = getCommitMessage()
-    if (commitMessage ==~ /${skipPattern}/) {
-        echo "Skipping build due to commit message matching pattern ${skipPattern}"
-        if (deleteBuild) {
-            currentBuild.result = 'NOT_BUILT'
-            throw new hudson.AbortException("Build skipped due to SCM skip pattern")
-        }
-    } else {
-        echo "Proceeding with the build"
-    }
-}
-
-def getCommitMessage() {
-    // This assumes the use of the Git plugin
-    def commitMessage = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
-    return commitMessage
 }
