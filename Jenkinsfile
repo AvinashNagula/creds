@@ -21,15 +21,16 @@ pipeline {
                     // Load the credentials from the groovy file
                     def creds = load 'credentials.groovy'
                     
-                    // Iterate over the credentials and write them to temporary files
+                    // Iterate over the credentials and use the certificate binding
                     creds.CERTS.each { cert ->
-                        withCredentials([file(credentialsId: cert.ID, variable: 'CERT_FILE')]) {
-                            sh "cp ${CERT_FILE} ${cert.FILE}"
+                        withCredentials([certificate(credentialsId: cert.ID, keystoreVariable: 'CERT_KEYSTORE', passwordVariable: 'CERT_PASSWORD')]) {
+                            // Output the keystore path to a temporary location
+                            sh "cp ${CERT_KEYSTORE} ${cert.FILE}"
                         }
                     }
                 }
             }
-        }
+       }
         stage('Build Docker Image') {
             steps {
                 script {
