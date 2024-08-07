@@ -23,8 +23,8 @@ pipeline {
                     
                     // Iterate over the credentials and write them to temporary files
                     creds.CERTS.each { cert ->
-                        withCredentials([certificate(credentialsId: cert.ID, keystoreVariable: 'CERT_KEYSTORE', passwordVariable: 'CERT_PASSWORD')]) {
-                            sh "cp ${CERT_KEYSTORE} ${cert.FILE}"
+                        withCredentials([file(credentialsId: cert.ID, variable: 'CERT_FILE')]) {
+                            sh "cp ${CERT_FILE} ${cert.FILE}"
                         }
                     }
                 }
@@ -38,7 +38,6 @@ pipeline {
                     ls -l
                     cat cert1.crt
                     cat cert2.crt
-                    cat secret
                     """
                 }
             }
