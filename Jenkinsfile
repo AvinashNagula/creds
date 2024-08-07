@@ -21,9 +21,11 @@ pipeline {
                     // Load the credentials from the groovy file
                     def creds = load 'credentials.groovy'
                     
-                    // Iterate over the credentials and set environment variables dynamically
+                    // Iterate over the credentials and write them to temporary files
                     creds.CERTS.each { cert ->
-                        env[cert.NAME] = credentials(cert.ID)
+                        withCredentials([string(credentialsId: cert.ID, variable: 'CERT_CONTENT')]) {
+                            writeFile file: cert.FILE, text: "${CERT_CONTENT}"
+                        }
                     }
                 }
             }
@@ -31,13 +33,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Write the credentials to temporary files
-                    def creds = load 'credentials.groovy'  // Reload if needed
-                    creds.CERTS.each { cert ->
-                        writeFile file: cert.FILE, text: "${env[cert.NAME]}"
-                    }
-
-                    // Build Docker image
+                    // List the files to confirm they are written correctly
                     sh """
                     ls -l
                     cat cert1.crt
